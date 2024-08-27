@@ -11,7 +11,8 @@ ls
 sleep 10  # รอ 10 วินาที
 
 # 3. เปลี่ยนสิทธิ์ของไฟล์ติดตั้งเป็น 777
-chmod 777 falcon-sensor_7.16.0-16903_amd64.deb
+chmod 777 falcon-sensor_7.14.0-16703_amd64.deb
+
 sleep 10  # รอ 10 วินาที
 
 # 4. แสดงรายการไฟล์ในไดเรกทอรีปัจจุบันอีกครั้ง
@@ -21,7 +22,8 @@ sleep 10  # รอ 10 วินาที
 
 # 5. ติดตั้งแพ็กเกจ Falcon Sensor
 echo "กำลังติดตั้ง Falcon Sensor..."
-dpkg -i falcon-sensor_7.16.0-16903_amd64.deb
+dpkg -i falcon-sensor_7.14.0-16703_amd64.deb
+
 if [ $? -ne 0 ]; then
   echo "การติดตั้งล้มเหลว หรืออาจมีปัญหาการขึ้นทะเบียนแพ็กเกจ" >&2
   echo "กำลังติดตั้ง dependencies ที่ขาดหายไป..."
