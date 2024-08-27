@@ -1,14 +1,4 @@
-#!/bin/bash
 
-# ตรวจสอบให้แน่ใจว่าสคริปต์รันด้วยสิทธิ์ของผู้ใช้ root
-if [ "$(id -u)" -ne 0 ]; then
-  echo "สคริปต์นี้ต้องรันด้วยสิทธิ์ root" >&2
-  exit 1
-fi
-
-# 1. ดาวน์โหลดไฟล์ติดตั้ง Falcon Sensor
-echo "กำลังดาวน์โหลด Falcon Sensor..."
-wget -q https://storage.googleapis.com/falcon-sensor.appspot.com/ubuntu/7.16.16903/falcon-sensor_7.16.0-16903_amd64.deb
 if [ $? -ne 0 ]; then
   echo "การดาวน์โหลดไฟล์ติดตั้งล้มเหลว" >&2
   exit 1
@@ -21,7 +11,7 @@ ls
 sleep 10  # รอ 10 วินาที
 
 # 3. เปลี่ยนสิทธิ์ของไฟล์ติดตั้งเป็น 777
-chmod 777 falcon-sensor_7.16.0-16903_amd64.deb
+chmod 777 falcon-sensor_7.14.0-16703_amd64.deb
 sleep 10  # รอ 10 วินาที
 
 # 4. แสดงรายการไฟล์ในไดเรกทอรีปัจจุบันอีกครั้ง
