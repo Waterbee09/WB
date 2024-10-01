@@ -1,51 +1,96 @@
 #!/bin/bash
 
-# อัพเดตระบบและติดตั้ง traceroute
-echo "กำลังติดตั้ง traceroute..."
-apt update
-apt install traceroute
+# Check if the script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run this script as root using sudo."
+  exit 1
+fi
 
-# หยุดบริการ UFW
-echo "กำลังหยุดบริการ UFW..."
+# Update the system and install traceroute
+echo "Updating the system and installing traceroute..."
+apt update -y
+apt install -y traceroute
+
+# Stop the UFW service
+echo "Stopping the UFW service..."
 systemctl stop ufw
 
-# ดาวน์โหลดและติดตั้ง Zabbix Repository
-echo "กำลังดาวน์โหลด Zabbix repository..."
-wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu20.04_all.deb
+# Download Zabbix Repository for Ubuntu 22.04
+ZABBIX_DEB="zabbix-release_7.0-2+ubuntu22.04_all.deb"
+ZABBIX_URL="https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/${ZABBIX_DEB}"
 
-echo "กำลังติดตั้ง Zabbix repository..."
-dpkg -i zabbix-release_7.0-2+ubuntu20.04_all.deb
+echo "Downloading Zabbix repository from ${ZABBIX_URL}..."
+wget -O /tmp/${ZABBIX_DEB} ${ZABBIX_URL}
 
-# อัพเดต apt หลังจากติดตั้ง repository ใหม่
-echo "กำลังอัพเดต apt..."
-apt update
+# Check if the download was successful
+if [ $? -ne 0 ]; then
+  echo "Failed to download Zabbix repository!"
+  exit 1
+fi
 
-# ติดตั้ง MySQL Server
-echo "กำลังติดตั้ง MySQL Server..."
+# Install Zabbix Repository
+echo "Installing Zabbix repository..."
+dpkg -i /tmp/${ZABBIX_DEB}
+
+# Update apt after installing the new repository
+echo "Updating apt after installing Zabbix repository..."
+apt update -y
+
+# Install MySQL Server
+echo "Installing MySQL Server..."
 apt install -y mysql-server
 
-# ตั้งค่าฐานข้อมูลและผู้ใช้สำหรับ Zabbix Proxy
-echo "กำลังตั้งค่าฐานข้อมูล Zabbix Proxy..."
-mysql <<EOF
-CREATE DATABASE zabbix_proxy CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-CREATE USER 'zabbix'@'localhost' IDENTIFIED BY '4rFvbgt%';
+# Wait for the MySQL service to start
+echo "Waiting for MySQL service to start..."
+sleep 5
+
+# Configure the database and user for Zabbix Proxy
+echo "Configuring the Zabbix Proxy database..."
+
+# Set the password for the zabbix user
+ZABBIX_DB_PASSWORD="4rFvbgt%"
+
+mysql -uroot <<MYSQL_SCRIPT
+CREATE DATABASE IF NOT EXISTS zabbix_proxy CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+CREATE USER IF NOT EXISTS 'zabbix'@'localhost' IDENTIFIED BY 'password';
 GRANT ALL PRIVILEGES ON zabbix_proxy.* TO 'zabbix'@'localhost';
-ALTER USER 'zabbix'@'localhost' IDENTIFIED BY '4rFvbgt%';
+ALTER USER 'zabbix'@'localhost' IDENTIFIED BY '${ZABBIX_DB_PASSWORD}';
 SET GLOBAL log_bin_trust_function_creators = 1;
-EOF
+MYSQL_SCRIPT
 
-# นำเข้าโครงสร้างฐานข้อมูลสำหรับ Zabbix Proxy
-echo "กำลังนำเข้าโครงสร้างฐานข้อมูลสำหรับ Zabbix Proxy..."
-cat /usr/share/zabbix-sql-scripts/mysql/proxy.sql | mysql --default-character-set=utf8mb4 -uzabbix -p4rFvbgt% zabbix_proxy
+# Check if the MySQL commands were successful
+if [ $? -ne 0 ]; then
+  echo "Failed to configure the MySQL database!"
+  exit 1
+fi
 
-# ติดตั้ง Zabbix Proxy และสคริปต์ SQL
-echo "กำลังติดตั้ง Zabbix Proxy และ SQL scripts..."
+# Import the database structure for Zabbix Proxy
+echo "Importing the database structure for Zabbix Proxy..."
+cat /usr/share/zabbix-sql-scripts/mysql/proxy.sql | mysql --default-character-set=utf8mb4 -uzabbix -p${ZABBIX_DB_PASSWORD} zabbix_proxy
+
+if [ $? -ne 0 ]; then
+  echo "Failed to import proxy.sql!"
+  exit 1
+fi
+
+# Install Zabbix Proxy and SQL scripts
+echo "Installing Zabbix Proxy and SQL scripts..."
 apt install -y zabbix-proxy-mysql zabbix-sql-scripts
 
-# ปรับแต่งค่าคอนฟิก MySQL
-echo "กำลังปรับแต่งค่าคอนฟิก MySQL..."
-mysql <<EOF
+# Adjust the MySQL configuration
+echo "Adjusting the MySQL configuration..."
+mysql -uroot <<MYSQL_SCRIPT
 SET GLOBAL log_bin_trust_function_creators = 0;
-EOF
+MYSQL_SCRIPT
 
-echo "การติดตั้งและตั้งค่าเสร็จสมบูรณ์แล้ว!"
+if [ $? -ne 0 ]; then
+  echo "Failed to adjust the MySQL configuration!"
+  exit 1
+fi
+
+# Display the status of important services
+echo "Checking the status of MySQL and Zabbix Proxy services..."
+systemctl status mysql | grep "active (running)"
+systemctl status zabbix-proxy | grep "active (running)"
+
+echo "Installation and configuration completed successfully!"
