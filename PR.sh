@@ -3,7 +3,7 @@
 # อัพเดตระบบและติดตั้ง traceroute
 echo "กำลังติดตั้ง traceroute..."
 apt update
-apt install -y traceroute
+apt install traceroute
 
 # หยุดบริการ UFW
 echo "กำลังหยุดบริการ UFW..."
