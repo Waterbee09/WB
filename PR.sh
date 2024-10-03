@@ -88,9 +88,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Display the status of important services
-echo "Checking the status of MySQL and Zabbix Proxy services..."
-systemctl status mysql | grep "active (running)"
-systemctl status zabbix-proxy | grep "active (running)"
-
-echo "Installation and configuration completed successfully!"
+# Start and enable Zabbix Proxy service
+echo "Starting and enabling Zabbix Proxy service..."
+systemctl start zabbix-proxy
+systemctl enable zabbix-proxy
