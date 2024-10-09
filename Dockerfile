@@ -5,5 +5,5 @@ FROM nginx:alpine
 COPY namphung.html /usr/share/nginx/html/index.html
 
 # เปิดพอร์ต 80
-EXPOSE 8080
+EXPOSE 80
 
